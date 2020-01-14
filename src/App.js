@@ -7,6 +7,7 @@ import {
 	Redirect,
 } from 'react-router-dom'
 import './App.css'
+import axios from 'axios'
 
 class LoginForm extends Component {
 	constructor(props) {
@@ -39,23 +40,33 @@ class LoginForm extends Component {
 	handleSubmit(event) {
 		event.preventDefault()
 
+		let login = this.state.login
+		let password = this.state.pass
+
+		let loginSuccess = false
+
+		axios({
+			method: 'post',
+			url: 'http://localhost:3001/users/login',
+			data: {
+				login: login,
+				lastName: password,
+			},
+		}).then((result) => {
+			loginSuccess = result.data
+		})
+
 		this.setState({ errors: [] })
 
-		let validLogin = 'login'
-		let validPass = 'pass'
-
-		if (this.state.login === '' || this.state.pass === '') {
+		if (login === '' || password === '') {
 			this.showError('empty', 'Login and password cannot be blank')
 			return
-		} else if (
-			validLogin !== this.state.login &&
-			validPass !== this.state.pass
-		) {
+		} else if (!loginSuccess) {
 			this.showError('incorrect', 'Invalid login or password')
 			return
 		}
 
-		alert('Succesfully logged in')
+		alert('Succesfully logged in ', login)
 
 		return <Redirect to='/cabinet' />
 	}
