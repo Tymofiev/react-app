@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { Button, Form } from 'react-bootstrap'
-import axios from 'axios'
+import loginFunc from '../api/index'
+import validate from '../lib/validation'
 
 export default class LoginForm extends Component {
 	constructor(props) {
@@ -12,57 +13,42 @@ export default class LoginForm extends Component {
 		this.handleChange = this.handleChange.bind(this)
 	}
 
-	showError(id, msg) {
-		this.setState((prevState) => ({
-			errors: [...prevState.errors, { id, msg }],
-		}))
-	}
-
-	clearError(id) {
-		this.setState((prevState) => {
-			let newArray = []
-			for (let err of prevState.errors) {
-				if (id !== err.id) {
-					newArray.push(err)
-				}
-			}
-			return { errors: newArray }
-		})
-	}
-
 	handleSubmit(event) {
 		event.preventDefault()
 
 		let login = this.state.login
 		let password = this.state.pass
 
-		let loginSuccess = false
+		validate(login, password)
+			.then(() => {
+				loginFunc(login, password)
+					.then((res) => {
+						console.log(res.data.token)
+						localStorage.setItem('token', res.data.token)
+						this.setState({ errors: [] })
+						this.props.history.push('/')
+					})
+					.catch((e) => {
+						console.log(e)
+						this.setState((prevState) => ({
+							errors: [
+								...prevState.errors,
+								{ id: 'error', msg: 'Incorrect login or password' },
+							],
+						}))
+					})
+			})
+			.catch((err) => {
+				let arr = []
+				err.errors.forEach((e) => {
+					arr.push({
+						id: e,
+						msg: e,
+					})
+				})
 
-		if (login === '' || password === '') {
-			this.clearError('empty')
-			this.showError('empty', 'Login and password cannot be blank')
-			return
-		}
-
-		axios({
-			method: 'post',
-			url: 'http://localhost:3001/users/login',
-			data: {
-				login: login,
-				password: password,
-			},
-		}).then((result) => {
-			loginSuccess = result.data
-
-			if (!loginSuccess) {
-				this.showError('incorrect', 'Invalid login or password')
-				return
-			}
-
-			return this.props.history.push('/')
-		})
-
-		this.setState({ errors: [] })
+				this.setState({ errors: arr })
+			})
 	}
 
 	handleChange(e) {
@@ -107,6 +93,7 @@ export default class LoginForm extends Component {
 										? this.state.errors.map((error) => (
 												<small className='errors' key={error.id}>
 													{error.msg}
+													<br />
 												</small>
 										  ))
 										: ''}
